@@ -8,9 +8,22 @@
 | 2026-11-27 | Case-Sensitivity Fix + File Logging | `build/mother_encore.nro` + `build/mother_encore.pck` | Pushed (`f4b4fe9`), FW 22.5.0 `2001-0132` Crash |
 | 2026-11-27 | Godot 3.5.2 `libnx` 2026 Rebuild + Fast Boot | `build/mother_encore.nro` + `build/mother_encore.pck` | Booted on Switch (`0d48e3ae`), Ninten's House translations + slow boot reported |
 | 2026-11-27 | Translation Fix + SD I/O + Precompiled Boot Data | `build/mother_encore.nro` + `build/mother_encore.pck` | Fixed Ninten's House translations (`919b92d`), Podunk outdoor low FPS reported |
-| 2026-11-27 | Overworld FPS Fix (YSort Cull + TileMap + GDScript) | `build/mother_encore.nro` + `build/mother_encore.pck` | Built, Verified & Deployed to Switch (`SHA256 MATCH`) |
+| 2026-11-27 | Overworld FPS Fix (YSort Cull + TileMap + GDScript) | `build/mother_encore.nro` + `build/mother_encore.pck` | Pushed (`e1cded3`), still slow until dialogue (`godot.log` un-flushed) |
+| 2026-11-27 | Physics2D / Stepping Sounds Fix + Flushed Telemetry | `build/mother_encore.nro` + `build/mother_encore.pck` | Built, Verified & Deployed to Switch (`SHA256 MATCH`) |
 
-## Overworld FPS Optimization (2026-11-27)
+## Physics2D Collision Mask & Telemetry Flush Fix (2026-11-27)
+- **Why Dialogue Ran at 60 FPS**: During dialogue, `Player` disables Layer 1/8 collision masks (`_set_collision_masks(false)`), skips `_move_state()`, and pauses enemies. Outdoors when unpaused, `Stepping Sounds` (`mask=1`, `31` large polygons including a 371-vert polygon) paired in `BroadPhase2DHashGrid` with all Layer-1 bodies, `Player` ran two `move_and_slide()` sweeps every tick even when idle, and `Jump Area` updated 14 raycasts unconditionally.
+- **Fixes Applied**:
+  - `switch/godot_switch_engine.patch` (`drivers/unix/file_access_unix.cpp`): restrict 64 KB `setvbuf` under `HORIZON_ENABLED` to `p_mode_flags == READ` so `godot.log` writes are never trapped in a 64 KB buffer before HOME exit.
+  - `Scripts/Main/Stepping Sounds.gd` & `Scripts/Main/party/Player.gd`: set `collision_mask = 0` on `Stepping Sounds`, keep bit 11 enabled on `Player`, and skip `move_and_slide()` when `_velocity == Vector2.ZERO` / `_knockback == Vector2.ZERO`.
+  - `Scripts/Main/Jump Area.gd` & `Scripts/misc/dandelion spawner.gd`: short-circuit `_get_ray_to_player()` when `!_is_player_nearby`, and fix inverted despawn check (`if _current_dandelion:`).
+  - `Scripts/global/uiManager.gd`: 3s `[PERF]` `printerr()` (immediate flush) logging `paused`, `fps`, `nodes`, `items2d`, `draws`, `proc_ms`, `phys_ms`, `active2d`, `pairs2d`.
+
+## Verified Build & Switch Deploy Outputs
+- `mother_encore.nro`: `38,711,489` B, `SHA256 = 4C5B6581C7DC0B50C22E588FF9E689AAFC850C5D2F16CB70A5D9DABB453CF0F8` (`HTTP 201`, `SHA256 MATCH`)
+- `mother_encore.pck`: `255,737,920` B, `SHA256 = 324A49EA7A007886E42D7AF43674066441E504110C1385FF09ED4A0D2958BCA1` (`HTTP 201`, `SHA256 MATCH`)
+
+## Previous Stage — Overworld FPS Optimization (2026-11-27)
 - **Engine (`switch/godot_switch_engine.patch`)**:
   - `servers/visual/visual_server_canvas.cpp`: culled off-screen leaf items & empty-child containers in `_collect_ysort_children()` BEFORE `SortArray::sort()`.
   - `scene/2d/tile_map.h` & `scene/2d/tile_map.cpp`: horizontal row batching (`quadrant_size` × `1`) for square non-vertical-half-offset `y_sort_mode` TileMaps (`Objects`, `YSort2`, `AbovePlayer3`, etc.).

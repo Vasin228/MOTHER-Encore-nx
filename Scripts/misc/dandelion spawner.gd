@@ -14,6 +14,6 @@ func _on_VisibilityNotifier2D_screen_entered():
 		_current_dandelion = new_dandelion
 
 func _on_VisibilityNotifier2D_screen_exited():
-	if !_current_dandelion:
+	if _current_dandelion:
 		_current_dandelion.queue_free()
 		_current_dandelion = null

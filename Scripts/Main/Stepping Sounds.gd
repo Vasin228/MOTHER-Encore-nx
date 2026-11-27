@@ -8,6 +8,9 @@ export (String, "", "shadow", "ripple", "magic") var exit_shadow_effect = ""
 
 var enabled = true
 
+func _ready():
+	collision_mask = 0
+
 func _on_Stepping_Sounds_body_entered(body):
 	if body == global.get_player() and enabled:
 		set_player_run_sound(entering_sound)

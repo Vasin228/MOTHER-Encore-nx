@@ -147,9 +147,11 @@ func update_state(silent: bool = false):
 	.update_state(silent)
 
 func _get_ray_to_player() -> bool:
+	if !_is_player_nearby:
+		return false
 	$RayCast2D.look_at(global.get_player().get_ground_position())
 	#print($RayCast2D.get_collider())
-	return $RayCast2D.get_collider() == global.get_player() and _is_player_nearby
+	return $RayCast2D.get_collider() == global.get_player()
 
 func _update():
 	_is_enabled = _get_state()

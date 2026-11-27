@@ -93,6 +93,7 @@ func _ready():
 	var sfx := load("res://Audio/Sound effects/Footsteps/%s.mp3" % run_sound)
 	audioManager.add_sfx(sfx, "run")
 	_last_step_pos = position
+	set_collision_mask_bit(11, true)
 	
 	
 
@@ -334,8 +335,10 @@ func _movement(delta: float):
 				_velocity = _direction * _speed
 	
 	var oldpos = self.position
-	_velocity = move_and_slide(_velocity * delta * (_speed/1.7))
-	_knockback = move_and_slide(_knockback)
+	if _velocity != Vector2.ZERO:
+		_velocity = move_and_slide(_velocity * delta * (_speed/1.7))
+	if _knockback != Vector2.ZERO:
+		_knockback = move_and_slide(_knockback)
 	if max(round(abs(oldpos.x - position.x)), round(abs(oldpos.y - position.y))) > 0 or abs(_knockback.x) > 0.1 or abs(_knockback.y) > 0.1:
 		_substantial_movement = true
 		_idle = false

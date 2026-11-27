@@ -203,16 +203,18 @@ index d7bbe07..bf30902 100644
  	virtual uint64_t _get_modified_time(const String &p_file) { return 0; }
  	virtual uint32_t _get_unix_permissions(const String &p_file) { return 0; }
 diff --git a/drivers/unix/file_access_unix.cpp b/drivers/unix/file_access_unix.cpp
-index 65d72a7..50c9823 100644
+index 65d72a7..868b185 100644
 --- a/drivers/unix/file_access_unix.cpp
 +++ b/drivers/unix/file_access_unix.cpp
-@@ -130,6 +130,11 @@ Error FileAccessUnix::_open(const String &p_path, int p_mode_flags) {
+@@ -130,6 +130,13 @@ Error FileAccessUnix::_open(const String &p_path, int p_mode_flags) {
  		return last_error;
  	}
  
 +#ifdef HORIZON_ENABLED
-+	// Increase newlib stdio buffer from 1 KB (BUFSIZ) to 64 KB for faster sdmc:/ reads.
-+	setvbuf(f, nullptr, _IOFBF, 65536);
++	// Increase newlib stdio buffer from 1 KB (BUFSIZ) to 64 KB for read-only files only.
++	if (p_mode_flags == READ) {
++		setvbuf(f, nullptr, _IOFBF, 65536);
++	}
 +#endif
 +
  #ifndef HORIZON_ENABLED

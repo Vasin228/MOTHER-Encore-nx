@@ -144,7 +144,7 @@ func _ready():
 	print("[BOOT] uiManager._ready: %d ms" % OS.get_ticks_msec())
 	if OS.get_name() == "Switch":
 		var perf_timer := Timer.new()
-		perf_timer.wait_time = 5.0
+		perf_timer.wait_time = 3.0
 		perf_timer.one_shot = false
 		perf_timer.autostart = true
 		perf_timer.connect("timeout", self, "_log_switch_perf")
@@ -152,14 +152,19 @@ func _ready():
 
 func _log_switch_perf():
 	var sname := global.currentScene.name if is_instance_valid(global.currentScene) else "?"
-	print("[PERF] scene=%s fps=%d nodes=%d items2d=%d draws=%d proc_ms=%.1f phys_ms=%.1f" % [
+	var p := global.get_player()
+	var paused := p.is_paused() if is_instance_valid(p) else false
+	printerr("[PERF] scene=%s paused=%s fps=%d nodes=%d items2d=%d draws=%d proc_ms=%.1f phys_ms=%.1f active2d=%d pairs2d=%d" % [
 		sname,
+		str(paused),
 		int(Performance.get_monitor(Performance.TIME_FPS)),
 		int(Performance.get_monitor(Performance.OBJECT_NODE_COUNT)),
 		int(Performance.get_monitor(Performance.RENDER_2D_ITEMS_IN_FRAME)),
 		int(Performance.get_monitor(Performance.RENDER_2D_DRAW_CALLS_IN_FRAME)),
 		Performance.get_monitor(Performance.TIME_PROCESS) * 1000.0,
-		Performance.get_monitor(Performance.TIME_PHYSICS_PROCESS) * 1000.0
+		Performance.get_monitor(Performance.TIME_PHYSICS_PROCESS) * 1000.0,
+		int(Performance.get_monitor(Performance.PHYSICS_2D_ACTIVE_OBJECTS)),
+		int(Performance.get_monitor(Performance.PHYSICS_2D_COLLISION_PAIRS))
 	])
 
 func set_menu_flavors(flavor: String):
