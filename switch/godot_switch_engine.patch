@@ -1,0 +1,114 @@
+diff --git a/platform/switch/audio_driver_switch.cpp b/platform/switch/audio_driver_switch.cpp
+index a5aa076..3c6aee0 100644
+--- a/platform/switch/audio_driver_switch.cpp
++++ b/platform/switch/audio_driver_switch.cpp
+@@ -56,8 +56,10 @@ Error AudioDriverSwitch::init_device() {
+ 
+ 	Result res = audrenInitialize(&arConfig);
+ 	printf("audrenInitialize: %x\n", res);
++	if (R_FAILED(res)) return ERR_CANT_OPEN;
+ 	res = audrvCreate(&audren_driver, &arConfig, 2);
+-	printf("audrenInitialize: %x\n", res);
++	printf("audrvCreate: %x\n", res);
++	if (R_FAILED(res)) { audrenExit(); return ERR_CANT_OPEN; }
+ 
+ 	audren_buffer_size = (sizeof(int16_t) * buffer_size * channels);
+ 	audren_pool_size = ((audren_buffer_size * 2) + 0xFFF) & ~0xFFF;
+@@ -79,9 +81,11 @@ Error AudioDriverSwitch::init_device() {
+ 
+ 	res = audrvUpdate(&audren_driver);
+ 	printf("audrvUpdate: %x\n", res);
++	if (R_FAILED(res)) { audrvClose(&audren_driver); audrenExit(); return ERR_CANT_OPEN; }
+ 
+ 	res = audrenStartAudioRenderer();
+ 	printf("audrenStartAudioRenderer: %x\n", res);
++	if (R_FAILED(res)) { audrvClose(&audren_driver); audrenExit(); return ERR_CANT_OPEN; }
+ 
+ 	audrvVoiceInit(&audren_driver, 0, channels, PcmFormat_Int16, mix_rate);
+ 	audrvVoiceSetDestinationMix(&audren_driver, 0, AUDREN_FINAL_MIX_ID);
+@@ -149,8 +153,10 @@ void AudioDriverSwitch::thread_func(void *p_udata) {
+ 			}
+ 			audrvUpdate(&ad->audren_driver);
+ 			audrenWaitFrame();
++			int wait_tries = 0;
+ 			while (ad->audren_buffers[free_buffer].state != AudioDriverWaveBufState_Playing) {
+ 				audrvUpdate(&ad->audren_driver);
++				if (++wait_tries >= 2000) break;
+ 			}
+ 		} else {
+ 			//printf("aud: no free buffer\n");
+diff --git a/platform/switch/os_switch.cpp b/platform/switch/os_switch.cpp
+index 917e3ee..5a67468 100644
+--- a/platform/switch/os_switch.cpp
++++ b/platform/switch/os_switch.cpp
+@@ -387,11 +387,7 @@ void OS_Switch::run() {
+ 
+ 	main_loop->init();
+ 
+-	swkbdInlineLaunchForLibraryApplet(&inline_keyboard, SwkbdInlineMode_AppletDisplay, 0);
+-	swkbdInlineSetChangedStringCallback(&inline_keyboard, keyboard_string_changed_callback);
+-	swkbdInlineSetMovedCursorCallback(&inline_keyboard, keyboard_moved_cursor_callback);
+-	swkbdInlineSetDecidedEnterCallback(&inline_keyboard, keyboard_decided_enter_callback);
+-	swkbdInlineSetDecidedCancelCallback(&inline_keyboard, keyboard_decided_cancel_callback);
++	// Disabled swkbdInline library applet for HOS 21+/22.5.0 compatibility
+ 
+ 	int last_touch_count = 0;
+ 	// maximum of 16 touches
+@@ -459,13 +455,13 @@ void OS_Switch::run() {
+ 		joypad->process();
+ 		input->flush_buffered_events();
+ 
+-		swkbdInlineUpdate(&inline_keyboard, NULL);
++		// swkbdInline disabled
+ 
+ 		if (Main::iteration())
+ 			break;
+ 	}
+ 
+-	swkbdInlineClose(&inline_keyboard);
++	// swkbdInline disabled
+ 	main_loop->finish();
+ }
+ 
+@@ -474,7 +470,7 @@ bool OS_Switch::has_touchscreen_ui_hint() const {
+ }
+ 
+ bool OS_Switch::has_virtual_keyboard() const {
+-	return true;
++	return false;
+ }
+ 
+ int OS_Switch::get_virtual_keyboard_height() const {
+@@ -486,24 +482,11 @@ int OS_Switch::get_virtual_keyboard_height() const {
+ }
+ 
+ void OS_Switch::show_virtual_keyboard(const String &p_existing_text, const Rect2 &p_screen_rect, int p_max_input_length) {
+-	if (!g_swkbd_open) {
+-		g_swkbd_open = true;
+-
+-		SwkbdAppearArg appear_arg;
+-		swkbdInlineMakeAppearArg(&appear_arg, SwkbdType_Normal);
+-		swkbdInlineSetInputText(&inline_keyboard, p_existing_text.utf8().get_data());
+-		swkbdInlineSetCursorPos(&inline_keyboard, p_existing_text.size() - 1);
+-
+-		g_eat_string_events = 2;
+-
+-		swkbdInlineAppear(&inline_keyboard, &appear_arg);
+-	}
++	// Disabled swkbdInline
+ }
+ 
+ void OS_Switch::hide_virtual_keyboard() {
+-	printf("Hiding kbd!\n");
+ 	g_swkbd_open = false;
+-	swkbdInlineDisappear(&inline_keyboard);
+ }
+ 
+ OS::PowerState OS_Switch::get_power_state() {
+@@ -560,5 +543,5 @@ OS_Switch::OS_Switch() {
+ 	gl_context = nullptr;
+ 	AudioDriverManager::add_driver(&driver_switch);
+ 
+-	swkbdInlineCreate(&inline_keyboard);
++	// swkbdInline disabled
+ }

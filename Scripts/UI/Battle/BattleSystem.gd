@@ -367,7 +367,11 @@ func init_battle_params(enemies_to_join: Array, advantage: int, can_run: bool = 
 	
 	_item_pool.roll_item(_enemy_BPs)
 	
-	var bg = battle_bgs.get(_enemy_BPs[0].character.get_data().get("bg"), battle_bgs["lamp"])
+	var bg_key = _enemy_BPs[0].character.get_data().get("bg")
+	var bg = battle_bgs.get(bg_key, battle_bgs["lamp"])
+	if bg is String:
+		bg = load(bg)
+		battle_bgs[bg_key if battle_bgs.has(bg_key) else "lamp"] = bg
 	_battle_bg = CanvasLayer.new()
 	_battle_bg.add_child(bg.instance())
 	_battle_bg.layer = -1

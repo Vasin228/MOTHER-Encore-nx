@@ -348,6 +348,7 @@ func _add_to_canvas(node: Node, layer: int = 0):
 func _load_battle_bgs():
 	var dir := Directory.new()
 	var path := "res://Graphics/Battle BGS/"
+	var lazy := (OS.get_name() == "Switch")
 	if dir.open(path) == OK:
 		dir.list_dir_begin()
 		var file_name := dir.get_next()
@@ -355,9 +356,11 @@ func _load_battle_bgs():
 			if !dir.current_is_dir():
 				# jank bg import lol
 				if file_name.ends_with(".bbg.import"):
-					_battle_bgs[file_name.replace(".bbg.import", "")] = load(path + file_name.replace(".import", ""))
+					var res_path := path + file_name.replace(".import", "")
+					_battle_bgs[file_name.replace(".bbg.import", "")] = res_path if lazy else load(res_path)
 				elif file_name.ends_with(".dsp.import"):
-					_battle_bgs[file_name.replace(".dsp.import", "")] = load(path + file_name.replace(".import", ""))
+					var res_path := path + file_name.replace(".import", "")
+					_battle_bgs[file_name.replace(".dsp.import", "")] = res_path if lazy else load(res_path)
 			file_name = dir.get_next()
 
 func update_key_indicator():

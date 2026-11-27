@@ -7,7 +7,10 @@ var materials := ["res://Shaders/Fade.shader","res://Shaders/Transition.shader",
 var thread_ = Thread.new()
 
 func _ready():
-	thread_.start(self,"load_stuff","no_use")
+	if OS.get_name() == "Switch":
+		_load_materials()
+	else:
+		thread_.start(self,"load_stuff","no_use")
 
 func load_stuff(no_use) -> void:
 	
@@ -31,7 +34,8 @@ func load_stuff(no_use) -> void:
 		cache_.push_back(load(load_ui[i]))
 
 func _exit_tree():
-	thread_.wait_to_finish()
+	if thread_.is_active():
+		thread_.wait_to_finish()
 
 func _load_materials():
 	var sprites = []
