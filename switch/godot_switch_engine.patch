@@ -1,3 +1,223 @@
+diff --git a/core/io/file_access_pack.cpp b/core/io/file_access_pack.cpp
+index 809845d..f6535aa 100644
+--- a/core/io/file_access_pack.cpp
++++ b/core/io/file_access_pack.cpp
+@@ -30,10 +30,33 @@
+ 
+ #include "file_access_pack.h"
+ 
++#include "core/os/mutex.h"
+ #include "core/os/os.h"
+ #include "core/version.h"
+ 
+ #include <stdio.h>
++#include <string.h>
++
++#ifdef HORIZON_ENABLED
++#define HORIZON_PCK_MEM_THRESHOLD (262144)
++
++static Mutex horizon_pack_mutex;
++static Map<String, FILE *> horizon_pack_files;
++
++static FILE *_horizon_get_pack_file(const String &p_pack) {
++	Map<String, FILE *>::Element *E = horizon_pack_files.find(p_pack);
++	if (E) {
++		return E->get();
++	}
++	FILE *fp = fopen(p_pack.utf8().get_data(), "rb");
++	if (fp) {
++		// Unbuffered handle: single fseeko + exact-size fread per packed asset avoids stdio prefetch overhead.
++		setvbuf(fp, nullptr, _IONBF, 0);
++		horizon_pack_files[p_pack] = fp;
++	}
++	return fp;
++}
++#endif
+ 
+ Error PackedData::add_pack(const String &p_path, bool p_replace_files, uint64_t p_offset) {
+ 	for (int i = 0; i < sources.size(); i++) {
+@@ -258,11 +281,25 @@ Error FileAccessPack::_open(const String &p_path, int p_mode_flags) {
+ }
+ 
+ void FileAccessPack::close() {
+-	f->close();
++#ifdef HORIZON_ENABLED
++	if (use_mem) {
++		mem_open = false;
++		mem_buf.clear();
++		return;
++	}
++#endif
++	if (f) {
++		f->close();
++	}
+ }
+ 
+ bool FileAccessPack::is_open() const {
+-	return f->is_open();
++#ifdef HORIZON_ENABLED
++	if (use_mem) {
++		return mem_open;
++	}
++#endif
++	return f && f->is_open();
+ }
+ 
+ void FileAccessPack::seek(uint64_t p_position) {
+@@ -272,6 +309,12 @@ void FileAccessPack::seek(uint64_t p_position) {
+ 		eof = false;
+ 	}
+ 
++#ifdef HORIZON_ENABLED
++	if (use_mem) {
++		pos = p_position;
++		return;
++	}
++#endif
+ 	f->seek(pf.offset + p_position);
+ 	pos = p_position;
+ }
+@@ -293,6 +336,15 @@ bool FileAccessPack::eof_reached() const {
+ }
+ 
+ uint8_t FileAccessPack::get_8() const {
++#ifdef HORIZON_ENABLED
++	if (use_mem) {
++		if (pos >= pf.size || !mem_open) {
++			eof = true;
++			return 0;
++		}
++		return mem_buf.ptr()[pos++];
++	}
++#endif
+ 	if (pos >= pf.size) {
+ 		eof = true;
+ 		return 0;
+@@ -305,6 +357,28 @@ uint8_t FileAccessPack::get_8() const {
+ uint64_t FileAccessPack::get_buffer(uint8_t *p_dst, uint64_t p_length) const {
+ 	ERR_FAIL_COND_V(!p_dst && p_length > 0, -1);
+ 
++#ifdef HORIZON_ENABLED
++	if (use_mem) {
++		if (eof || !mem_open) {
++			return 0;
++		}
++		if (pos >= pf.size) {
++			eof = true;
++			return 0;
++		}
++		int64_t to_read = p_length;
++		if ((uint64_t)to_read + pos > pf.size) {
++			eof = true;
++			to_read = (int64_t)(pf.size - pos);
++		}
++		if (to_read <= 0) {
++			return 0;
++		}
++		memcpy(p_dst, mem_buf.ptr() + pos, to_read);
++		pos += to_read;
++		return to_read;
++	}
++#endif
+ 	if (eof) {
+ 		return 0;
+ 	}
+@@ -327,7 +401,9 @@ uint64_t FileAccessPack::get_buffer(uint8_t *p_dst, uint64_t p_length) const {
+ 
+ void FileAccessPack::set_endian_swap(bool p_swap) {
+ 	FileAccess::set_endian_swap(p_swap);
+-	f->set_endian_swap(p_swap);
++	if (f) {
++		f->set_endian_swap(p_swap);
++	}
+ }
+ 
+ Error FileAccessPack::get_error() const {
+@@ -355,6 +431,36 @@ bool FileAccessPack::file_exists(const String &p_name) {
+ 
+ FileAccessPack::FileAccessPack(const String &p_path, const PackedData::PackedFile &p_file) :
+ 		pf(p_file),
++#ifdef HORIZON_ENABLED
++		f(nullptr),
++		use_mem(pf.size <= HORIZON_PCK_MEM_THRESHOLD),
++		mem_open(false) {
++	pos = 0;
++	eof = false;
++	if (use_mem) {
++		if (pf.size == 0) {
++			mem_open = true;
++			return;
++		}
++		if (mem_buf.resize(pf.size) == OK) {
++			MutexLock lock(horizon_pack_mutex);
++			FILE *fp = _horizon_get_pack_file(pf.pack);
++			if (fp && fseeko(fp, (off_t)pf.offset, SEEK_SET) == 0) {
++				size_t nread = fread(mem_buf.ptrw(), 1, (size_t)pf.size, fp);
++				if (nread == (size_t)pf.size) {
++					mem_open = true;
++					return;
++				}
++			}
++		}
++		mem_buf.clear();
++		use_mem = false;
++	}
++	f = FileAccess::open(pf.pack, FileAccess::READ);
++	ERR_FAIL_COND_MSG(!f, "Can't open pack-referenced file '" + String(pf.pack) + "'.");
++	f->seek(pf.offset);
++}
++#else
+ 		f(FileAccess::open(pf.pack, FileAccess::READ)) {
+ 	ERR_FAIL_COND_MSG(!f, "Can't open pack-referenced file '" + String(pf.pack) + "'.");
+ 
+@@ -362,6 +468,7 @@ FileAccessPack::FileAccessPack(const String &p_path, const PackedData::PackedFil
+ 	pos = 0;
+ 	eof = false;
+ }
++#endif
+ 
+ FileAccessPack::~FileAccessPack() {
+ 	if (f) {
+diff --git a/core/io/file_access_pack.h b/core/io/file_access_pack.h
+index d7bbe07..bf30902 100644
+--- a/core/io/file_access_pack.h
++++ b/core/io/file_access_pack.h
+@@ -37,6 +37,7 @@
+ #include "core/os/file_access.h"
+ #include "core/print_string.h"
+ #include "core/set.h"
++#include "core/vector.h"
+ 
+ // Godot's packed file magic header ("GDPC" in ASCII).
+ #define PACK_HEADER_MAGIC 0x43504447
+@@ -143,6 +144,11 @@ class FileAccessPack : public FileAccess {
+ 	mutable bool eof;
+ 
+ 	FileAccess *f;
++#ifdef HORIZON_ENABLED
++	Vector<uint8_t> mem_buf;
++	bool use_mem;
++	bool mem_open;
++#endif
+ 	virtual Error _open(const String &p_path, int p_mode_flags);
+ 	virtual uint64_t _get_modified_time(const String &p_file) { return 0; }
+ 	virtual uint32_t _get_unix_permissions(const String &p_file) { return 0; }
+diff --git a/drivers/unix/file_access_unix.cpp b/drivers/unix/file_access_unix.cpp
+index 65d72a7..50c9823 100644
+--- a/drivers/unix/file_access_unix.cpp
++++ b/drivers/unix/file_access_unix.cpp
+@@ -130,6 +130,11 @@ Error FileAccessUnix::_open(const String &p_path, int p_mode_flags) {
+ 		return last_error;
+ 	}
+ 
++#ifdef HORIZON_ENABLED
++	// Increase newlib stdio buffer from 1 KB (BUFSIZ) to 64 KB for faster sdmc:/ reads.
++	setvbuf(f, nullptr, _IOFBF, 65536);
++#endif
++
+ #ifndef HORIZON_ENABLED
+ 	// Set close on exec to avoid leaking it to subprocesses.
+ 	int fd = fileno(f);
 diff --git a/platform/switch/audio_driver_switch.cpp b/platform/switch/audio_driver_switch.cpp
 index a5aa076..3c6aee0 100644
 --- a/platform/switch/audio_driver_switch.cpp

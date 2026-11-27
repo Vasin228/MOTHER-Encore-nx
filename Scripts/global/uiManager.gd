@@ -4,26 +4,74 @@ signal menu_flavor_updated
 signal ov_to_battle
 signal battle_to_ov
 
-const GameOverRes := preload("res://Nodes/Ui/GameOver.tscn")
+var GameOverRes: PackedScene = null setget , _get_game_over_res
 
 onready var CommandsMenuRes := preload("res://Nodes/Ui/Pause menu.tscn")
-var DialogueBoxRes := preload("res://Nodes/Ui/DialogueBox.tscn")
-var BattleDialogueBoxRes := preload("res://Nodes/Ui/Battle/BattleDialogueBox.tscn")
-var BattleSceneRes := preload("res://Nodes/Ui/Battle/Battle.tscn")
+var DialogueBoxRes: PackedScene = null setget , _get_dialogue_box_res
+var BattleDialogueBoxRes: PackedScene = null setget , _get_battle_dialogue_box_res
+var BattleSceneRes: PackedScene = null setget , _get_battle_scene_res
 var BlackBarsRes := preload("res://Nodes/Ui/Blackbars.tscn")
-var ATMMenuRes := preload("res://Nodes/Ui/ATM/ATM Menu.tscn")
+var ATMMenuRes: PackedScene = null setget , _get_atm_menu_res
 var CashBoxRes := preload("res://Nodes/Ui/CashBox.tscn")
 var PhoneUnitsBoxRes := preload("res://Nodes/Ui/PhoneUnitsBox.tscn")
 var KeyIndicatorRes := preload("res://Nodes/Ui/KeyCount.tscn")
-var ShopRes := preload("res://Nodes/Ui/Shop/ShopUI.tscn")
-var StorageRes := preload("res://Nodes/Ui/Storage.tscn")
-var SaveSelectRes := preload("res://Maps/SaveSelect.tscn")
-var OcarinaScreenRes := preload("res://Nodes/Ui/OcarinaScreen/OcarinaScreen.tscn")
-var KeyboardRes := preload("res://Maps/Naming screen.tscn")
+var ShopRes: PackedScene = null setget , _get_shop_res
+var StorageRes: PackedScene = null setget , _get_storage_res
+var SaveSelectRes: PackedScene = null setget , _get_save_select_res
+var OcarinaScreenRes: PackedScene = null setget , _get_ocarina_screen_res
+var KeyboardRes: PackedScene = null setget , _get_keyboard_res
 var MapScreenRes := preload("res://Nodes/Ui/MapScreen/MapScreen.tscn")
-var TrainCutsceneRes := preload("res://Maps/misc/TrainCutscene.tscn")
+var TrainCutsceneRes: PackedScene = null setget , _get_train_cutscene_res
 var PartyInfoRes := preload("res://Nodes/Ui/PartyInfo.tscn")
-var BattleTransitionRes := preload("res://Nodes/Ui/Battle/Battle Transition.tscn")
+var BattleTransitionRes: PackedScene = null setget , _get_battle_transition_res
+
+func _get_game_over_res() -> PackedScene:
+	if GameOverRes == null: GameOverRes = load("res://Nodes/Ui/GameOver.tscn")
+	return GameOverRes
+
+func _get_dialogue_box_res() -> PackedScene:
+	if DialogueBoxRes == null: DialogueBoxRes = load("res://Nodes/Ui/DialogueBox.tscn")
+	return DialogueBoxRes
+
+func _get_battle_dialogue_box_res() -> PackedScene:
+	if BattleDialogueBoxRes == null: BattleDialogueBoxRes = load("res://Nodes/Ui/Battle/BattleDialogueBox.tscn")
+	return BattleDialogueBoxRes
+
+func _get_battle_scene_res() -> PackedScene:
+	if BattleSceneRes == null: BattleSceneRes = load("res://Nodes/Ui/Battle/Battle.tscn")
+	return BattleSceneRes
+
+func _get_atm_menu_res() -> PackedScene:
+	if ATMMenuRes == null: ATMMenuRes = load("res://Nodes/Ui/ATM/ATM Menu.tscn")
+	return ATMMenuRes
+
+func _get_shop_res() -> PackedScene:
+	if ShopRes == null: ShopRes = load("res://Nodes/Ui/Shop/ShopUI.tscn")
+	return ShopRes
+
+func _get_storage_res() -> PackedScene:
+	if StorageRes == null: StorageRes = load("res://Nodes/Ui/Storage.tscn")
+	return StorageRes
+
+func _get_save_select_res() -> PackedScene:
+	if SaveSelectRes == null: SaveSelectRes = load("res://Maps/SaveSelect.tscn")
+	return SaveSelectRes
+
+func _get_ocarina_screen_res() -> PackedScene:
+	if OcarinaScreenRes == null: OcarinaScreenRes = load("res://Nodes/Ui/OcarinaScreen/OcarinaScreen.tscn")
+	return OcarinaScreenRes
+
+func _get_keyboard_res() -> PackedScene:
+	if KeyboardRes == null: KeyboardRes = load("res://Maps/Naming screen.tscn")
+	return KeyboardRes
+
+func _get_train_cutscene_res() -> PackedScene:
+	if TrainCutsceneRes == null: TrainCutsceneRes = load("res://Maps/misc/TrainCutscene.tscn")
+	return TrainCutsceneRes
+
+func _get_battle_transition_res() -> PackedScene:
+	if BattleTransitionRes == null: BattleTransitionRes = load("res://Nodes/Ui/Battle/Battle Transition.tscn")
+	return BattleTransitionRes
 onready var _cash: CanvasLayer = CashBoxRes.instance()
 onready var _phone_units: CanvasLayer = PhoneUnitsBoxRes.instance()
 onready var _key: CanvasLayer = KeyIndicatorRes.instance()
@@ -93,6 +141,7 @@ func _ready():
 	
 	_fixed_camera = load("res://Nodes/Ui/Camera.tscn").instance()
 	call_deferred("add_child", _fixed_camera)
+	print("[BOOT] uiManager._ready: %d ms" % OS.get_ticks_msec())
 
 func set_menu_flavors(flavor: String):
 	var flavor_index := globaldata.FLAVORS.find(flavor)
@@ -135,7 +184,7 @@ func open_dialogue_box(dialogue_id: String, on_finished: FuncRef = null, npc = n
 	var was_paused := global.get_player().is_paused()
 	if !was_paused:
 		global.get_player().pause(true, true)
-	_dialogue_box = DialogueBoxRes.instance()
+	_dialogue_box = self.DialogueBoxRes.instance()
 	_pause_menu_active = false
 	add_ui(_dialogue_box)
 	yield(_dialogue_box, "ready")
@@ -166,7 +215,7 @@ func set_cutscene(value: bool):
 	_cutscene = value
 
 func open_battle_dialogue_box(dialog := {}):
-	var battle_dialogue_box = BattleDialogueBoxRes.instance()
+	var battle_dialogue_box = self.BattleDialogueBoxRes.instance()
 	_pause_menu_active = false
 	add_ui(battle_dialogue_box)
 	yield(battle_dialogue_box, "ready")
@@ -246,7 +295,7 @@ func start_battle(advantage := 0, can_run := true, enemies_to_join := [], post_b
 	
 	# hoooo boy this is gonna be some funky code right here.
 	var root := get_tree().root
-	_battle_ui = BattleSceneRes.instance()
+	_battle_ui = self.BattleSceneRes.instance()
 	
 	if !enemies_to_join:
 		# add enemies to battle and an enemyTransition sprite
@@ -273,7 +322,7 @@ func start_battle(advantage := 0, can_run := true, enemies_to_join := [], post_b
 		yield(global.currentCamera, "stopped_shaking")
 	
 	
-	var transition = BattleTransitionRes.instance()
+	var transition = self.BattleTransitionRes.instance()
 	
 	_battle_ui.init_battle_params(enemies_to_join, advantage, can_run, _battle_bgs, transition, post_battle_cutscenes, win_flag)
 	
@@ -376,7 +425,7 @@ func set_current_shop(shop: String):
 	_current_shop = shop
 
 func open_shop(shop = null, can_sell = true, callback: FuncRef = null):
-	var shop_ui: Control = ShopRes.instance()
+	var shop_ui: Control = self.ShopRes.instance()
 	if shop == null:
 		shop = _current_shop
 	shop_ui.setup(shop, can_sell, callback)
@@ -384,32 +433,32 @@ func open_shop(shop = null, can_sell = true, callback: FuncRef = null):
 	add_ui(shop_ui)
 
 func open_storage(god_mode = false, callback: FuncRef = null):
-	var storage_ui: Control = StorageRes.instance()
+	var storage_ui: Control = self.StorageRes.instance()
 	storage_ui.god_mode = god_mode
 	storage_ui.setup(callback)
 	_pause_menu_active = false
 	add_ui(storage_ui)
 
 func open_atm(callback: FuncRef = null):
-	var atm_ui: Control = ATMMenuRes.instance()
+	var atm_ui: Control = self.ATMMenuRes.instance()
 	atm_ui.setup(callback)
 	_pause_menu_active = false
 	add_ui(atm_ui)
 
 func open_save(type := SaveSelect.Type.SAVE, callback: FuncRef = null):
-	var save_ui: SaveSelect = SaveSelectRes.instance()
+	var save_ui: SaveSelect = self.SaveSelectRes.instance()
 	_pause_menu_active = false
 	save_ui.init(type, globaldata.save_file, true, callback)
 	add_ui(save_ui)
 
 func open_keyboard(scenario_id: String, callback: FuncRef = null):
-	var keyboard_ui: Control = KeyboardRes.instance()
+	var keyboard_ui: Control = self.KeyboardRes.instance()
 	_pause_menu_active = false
 	keyboard_ui.init(scenario_id, true, callback)
 	add_ui(keyboard_ui)
 
 func open_ocarina_screen(callback: FuncRef = null):
-	var ocarina_ui: CanvasLayer = OcarinaScreenRes.instance()
+	var ocarina_ui: CanvasLayer = self.OcarinaScreenRes.instance()
 	_fade.fade_in("Circle Focus")
 	yield(_fade, "fade_in_done")
 	ocarina_ui.init(callback)
@@ -534,7 +583,7 @@ func get_on_screen_enemies() -> Array:
 func game_over(play_sfx := true):
 	if play_sfx:
 		audioManager.play_sfx(load("res://Audio/Sound effects/PartyLose.mp3"), "PartyLose")
-	var game_over = GameOverRes.instance()
+	var game_over = self.GameOverRes.instance()
 	game_over.connect("done", self, "_on_game_over_done", [game_over], CONNECT_ONESHOT)
 	add_ui(game_over)
 	_game_over = true

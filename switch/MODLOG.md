@@ -6,9 +6,22 @@
 |---|---|---|---|
 | 2026-11-27 | Initial Switch Port v0.4.1.2 | `build/mother_encore.nro` + `build/mother_encore.pck` | Built & Pushed (`1713fa2`), Black Screen on Switch |
 | 2026-11-27 | Case-Sensitivity Fix + File Logging | `build/mother_encore.nro` + `build/mother_encore.pck` | Pushed (`f4b4fe9`), FW 22.5.0 `2001-0132` Crash |
-| 2026-11-27 | Godot 3.5.2 `libnx` 2026 Rebuild + Fast Boot | `build/mother_encore.nro` + `build/mother_encore.pck` | Built, Verified & Deploying |
+| 2026-11-27 | Godot 3.5.2 `libnx` 2026 Rebuild + Fast Boot | `build/mother_encore.nro` + `build/mother_encore.pck` | Booted on Switch (`0d48e3ae`), Ninten's House translations + slow boot reported |
+| 2026-11-27 | Translation Fix + SD I/O + Precompiled Boot Data | `build/mother_encore.nro` + `build/mother_encore.pck` | Built, Verified & Deployed to Switch (`SHA256 MATCH`) |
 
-## Engine Rebuild & Startup Optimization (2026-11-27)
+## Translation Fix & Boot Acceleration (2026-11-27)
+- **Root Cause of Missing Ninten's House Text (`DIALOGUE_PODUNK_NON-PERSON_TEXT_NINTEN_S_HOUSE_*`)**:
+  - `project.godot` uses escaped apostrophes (`Ninten\'s house - sheet.<lang>.translation`), whereas `build/filter_translations.py` checked unescaped `fn in existing`, accidentally stripping all 12 `Ninten's house` translation files.
+  - Restored all 12 `Ninten\'s house` entries (`total=386`, `kept=323`, `removed=63`; verified `en` & `ru` message resolution directly from `.pck`).
+- **Switch SD I/O & Boot Speed Optimizations**:
+  - `switch/godot_switch_engine.patch`: added 64 KB stdio buffer (`setvbuf` in `drivers/unix/file_access_unix.cpp`) and persistent-handle `FILE*` single-read `mem_buf` cache (`<= 262 KB`) in `core/io/file_access_pack.cpp` under `HORIZON_ENABLED`.
+  - Precompiled the 304 boot YAML files into `Data/precompiled_boot_data.bin` (`189 KB`), updated `globalData.gd::_init()` (`8 ms` local), converted `SmartFileReader` in `yaml_parser.gd` to single-read text splitting, and deferred 12 non-boot `uiManager.gd` scenes via lazy getters (`uiManager._ready: 3885 ms` local).
+
+## Verified Build & Switch Deploy Outputs
+- `mother_encore.nro`: `38,711,489` B, `SHA256 = 5AF74F2CB5A194BEB1F6B4196E01D633773F3F318C48346FF4368C9F671BF1CD` (`HTTP 201`, `SHA256 MATCH`)
+- `mother_encore.pck`: `255,735,296` B, `SHA256 = 226F139EADECFC3F4690A1B0D9792A50A15EE4BC4BE5CB7B6D43B8A55DF4C5D3` (`HTTP 201`, `SHA256 MATCH`)
+
+## Previous Stage — Engine Rebuild & Startup Optimization (2026-11-27)
 - **Root Cause of `2001-0132 (0x10801)` in `0100000000000013` (`hid`)**:
   - Prebuilt 2023 `switch_release.nro` used an outdated `libnx` ABI broken on Switch FW 22.5.0 (> 21.0.0 memory/service changes, `Stary2001/godot` #39), and `OS_Switch::run()` launched `swkbdInlineLaunchForLibraryApplet()` immediately after `main_loop->init()` (right when the title appeared).
 - **Engine Rebuild (`Stary2001/godot` `3.5.2-stable_switch` + `devkitA64` 15.2.0 + `libnx` 2026-02-04)**:

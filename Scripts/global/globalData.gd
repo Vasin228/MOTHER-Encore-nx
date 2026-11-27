@@ -87,6 +87,7 @@ func _test_all_yaml():
 			print("")
 
 func _init():
+	var _t0 := OS.get_ticks_msec()
 	_init_flags()
 	
 	var to_load := {
@@ -97,8 +98,22 @@ func _init():
 		"Items": _items,
 		"StatusAilments": _status_ailments
 	}
-	for key in to_load:
-		_load_data("res://Data/%s/" % key, to_load[key])
+	var used_precompiled := false
+	var pre_file := File.new()
+	if pre_file.open("res://Data/precompiled_boot_data.bin", File.READ) == OK:
+		var pre_data = pre_file.get_var(false)
+		pre_file.close()
+		if typeof(pre_data) == TYPE_DICTIONARY and pre_data.has_all(to_load.keys()):
+			for key in to_load:
+				var src_dict: Dictionary = pre_data[key]
+				var dest_dict: Dictionary = to_load[key]
+				for sub_key in src_dict:
+					dest_dict[sub_key] = src_dict[sub_key]
+			used_precompiled = true
+	if !used_precompiled:
+		for key in to_load:
+			_load_data("res://Data/%s/" % key, to_load[key])
+	print("[BOOT] globalData._init: %d ms (precompiled=%s)" % [OS.get_ticks_msec() - _t0, str(used_precompiled)])
 
 func _ready():
 	god_storage = Inventory.new(Inventory.InvType.STORAGE_GOD)
@@ -366,8 +381,6 @@ func _load_data(path: String, dest: Dictionary, sub_dir: String = ""):
 func get_json_data(file_path: String, fallback: String = "") -> Dictionary:
 	var file := File.new()
 	if file.file_exists(file_path):
-		file.open(file_path, File.READ)
-		var file_content := file.get_as_text()
 		var res = YAMLParser.parse_file(file_path)
 		if res == null:
 			push_warning("Couldn’t parse yaml file at %s" % file_path)

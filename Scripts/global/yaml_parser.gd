@@ -2,18 +2,29 @@ class_name YAMLParser
 
 # Ignores comments and empty lines
 class SmartFileReader:
-	var _file := File.new()
+	var _lines := PoolStringArray()
+	var _file_path := ""
 	var _buffer := ""
 	var _line_number := 0
 
 	func open(path: String) -> int:
-		if _file.file_exists(path):
-			return _file.open(path, File.READ)
+		var f := File.new()
+		if f.file_exists(path):
+			var err := f.open(path, File.READ)
+			if err != OK:
+				return err
+			var content := f.get_as_text()
+			f.close()
+			_lines = content.replace("\r\n", "\n").split("\n")
+			_file_path = path
+			_line_number = 0
+			_buffer = ""
+			return OK
 		else:
 			return ERR_FILE_NOT_FOUND
 
 	func get_file_name() -> String:
-		return _file.get_path().get_basename()
+		return _file_path.get_basename()
 
 	func get_line_number() -> int:
 		return _line_number
@@ -23,8 +34,8 @@ class SmartFileReader:
 		return !(stripped == "" or stripped.begins_with("#"))
 
 	func _read_next_significant_line() -> String:
-		while !_file.eof_reached():
-			var line := _file.get_line()
+		while _line_number < _lines.size():
+			var line := _lines[_line_number]
 			_line_number += 1
 			if _is_line_significant(line):
 				return line
@@ -60,10 +71,11 @@ class SmartFileReader:
 		return first_dash_pos
 
 	func end_reached() -> bool:
-		return _peek_line(false) == "" and _file.eof_reached()
+		return _peek_line(false) == "" and _line_number >= _lines.size()
 
 	func close():
-		_file.close()
+		_lines = PoolStringArray()
+		_buffer = ""
 
 	static func _get_indent_level(line: String) -> int:
 		var stripped := line.lstrip(" ")
