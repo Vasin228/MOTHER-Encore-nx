@@ -6,7 +6,7 @@
 [ext_resource path="res://Fonts/EBMainOutline.tres" type="DynamicFont" id=4]
 [ext_resource path="res://Nodes/Ui/TitleLogo.tscn" type="PackedScene" id=5]
 [ext_resource path="res://Scripts/UI/Reusables/ButtonLabel.gd" type="Script" id=6]
-[ext_resource path="res://Scripts/UI/Credits/credits.gd" type="Script" id=7]
+[ext_resource path="res://Scripts/UI/Credits/Credits.gd" type="Script" id=7]
 
 [sub_resource type="Animation" id=2]
 length = 0.001

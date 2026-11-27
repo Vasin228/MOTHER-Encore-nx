@@ -14,13 +14,38 @@ FILES = [
 ]
 
 
+def get_remote_hash(remote_path: str) -> str:
+    last_err = None
+    for attempt in range(1, 4):
+        try:
+            conn = http.client.HTTPConnection(SWITCH_IP, PORT, timeout=120)
+            conn.request("GET", f"/files/hash?path={remote_path}")
+            resp = conn.getresponse()
+            raw = resp.read().decode("utf-8", "ignore")
+            conn.close()
+            if resp.status == 200:
+                return json.loads(raw).get("hash", "")
+            last_err = f"HTTP {resp.status}: {raw}"
+        except (ConnectionResetError, OSError, json.JSONDecodeError) as e:
+            last_err = repr(e)
+        if attempt < 3:
+            time.sleep(3)
+    print(f"WARN: hash check failed for {remote_path}: {last_err}")
+    return ""
+
+
 def upload_one(local_path: str, remote_path: str) -> None:
     size = os.path.getsize(local_path)
     with open(local_path, "rb") as f:
         data = f.read()
     local_hash = hashlib.sha256(data).hexdigest()
-    print(f"Uploading {local_path} ({size} bytes, SHA256={local_hash}) -> http://{SWITCH_IP}:{PORT}/files?path={remote_path}")
 
+    existing_hash = get_remote_hash(remote_path)
+    if existing_hash == local_hash:
+        print(f"SKIP {remote_path}: remote SHA256 already matches ({local_hash})")
+        return
+
+    print(f"Uploading {local_path} ({size} bytes, SHA256={local_hash}) -> http://{SWITCH_IP}:{PORT}/files?path={remote_path}")
     t0 = time.time()
     conn = http.client.HTTPConnection(SWITCH_IP, PORT, timeout=300)
     headers = {
@@ -39,12 +64,8 @@ def upload_one(local_path: str, remote_path: str) -> None:
         sys.exit(1)
     print(f"Transfer complete: 100% in {elapsed:.2f}s ({speed:.2f} MB/s)")
 
-    conn = http.client.HTTPConnection(SWITCH_IP, PORT, timeout=60)
-    conn.request("GET", f"/files/hash?path={remote_path}")
-    resp = conn.getresponse()
-    hash_info = json.loads(resp.read().decode("utf-8"))
-    conn.close()
-    remote_hash = hash_info.get("hash")
+    time.sleep(2)
+    remote_hash = get_remote_hash(remote_path)
     if remote_hash != local_hash:
         print(f"ERROR: SHA256 mismatch! local={local_hash} remote={remote_hash}")
         sys.exit(1)

@@ -127,7 +127,7 @@ _global_script_classes=[ {
 "base": "Control",
 "class": "Credits",
 "language": "GDScript",
-"path": "res://Scripts/UI/Credits/credits.gd"
+"path": "res://Scripts/UI/Credits/Credits.gd"
 }, {
 "base": "AnimatedSprite",
 "class": "Cursor",
@@ -1121,15 +1121,15 @@ translation_remaps={
 "res://Graphics/Rooms/DebugWorld.png": PoolStringArray( "res://Translations/TranslatedTilesets/DebugWorld_fr.png:fr" ),
 "res://Graphics/UI/ATM/dollar_left.png": PoolStringArray( "res://Translations/TranslatedUI/dollar_left_alt.png:fr", "res://Translations/TranslatedUI/dollar_left_alt.png:it", "res://Translations/TranslatedUI/dollar_left_alt.png:es", "res://Graphics/UI/ATM/dollar_left.png:es_ES", "res://Translations/TranslatedUI/dollar_left_alt.png:pl", "res://Translations/TranslatedUI/dollar_left_alt.png:de", "res://Translations/TranslatedUI/dollar_left_alt.png:ru", "res://Translations/TranslatedUI/dollar_left_alt.png:uk" ),
 "res://Graphics/UI/ATM/dollar_right.png": PoolStringArray( "res://Translations/TranslatedUI/dollar_right_alt.png:fr", "res://Translations/TranslatedUI/dollar_right_alt.png:it", "res://Translations/TranslatedUI/dollar_right_alt.png:es", "res://Graphics/UI/ATM/dollar_right.png:es_ES", "res://Translations/TranslatedUI/dollar_right_alt.png:pl", "res://Translations/TranslatedUI/dollar_right_alt.png:de", "res://Translations/TranslatedUI/dollar_right_alt.png:ru", "res://Translations/TranslatedUI/dollar_right_alt.png:uk" ),
-"res://Graphics/UI/Ailments/asthma.png": PoolStringArray( "res://Graphics/UI/Ailments/asthma_monospace.png:ja" ),
-"res://Graphics/UI/Ailments/blinded.png": PoolStringArray( "res://Graphics/UI/Ailments/blinded_monospace.png:ja" ),
-"res://Graphics/UI/Ailments/confused.png": PoolStringArray( "res://Graphics/UI/Ailments/confused_monospace.png:ja" ),
-"res://Graphics/UI/Ailments/forgetful.png": PoolStringArray( "res://Graphics/UI/Ailments/forgetful_monospace.png:ja" ),
-"res://Graphics/UI/Ailments/nausea.png": PoolStringArray( "res://Graphics/UI/Ailments/nausea_monospace.png:ja" ),
-"res://Graphics/UI/Ailments/numb.png": PoolStringArray( "res://Graphics/UI/Ailments/numb_monospace.png:ja" ),
-"res://Graphics/UI/Ailments/poisoned.png": PoolStringArray( "res://Graphics/UI/Ailments/poisoned_monospace.png:ja" ),
-"res://Graphics/UI/Ailments/sleeping.png": PoolStringArray( "res://Graphics/UI/Ailments/sleeping_monospace.png:ja" ),
-"res://Graphics/UI/Ailments/sunstroked.png": PoolStringArray( "res://Graphics/UI/Ailments/sunstroked_monospace.png:ja" ),
+"res://Graphics/UI/Ailments/Asthma.png": PoolStringArray( "res://Graphics/UI/Ailments/Asthma_monospace.png:ja" ),
+"res://Graphics/UI/Ailments/Blinded.png": PoolStringArray( "res://Graphics/UI/Ailments/Blinded_monospace.png:ja" ),
+"res://Graphics/UI/Ailments/Confused.png": PoolStringArray( "res://Graphics/UI/Ailments/Confused_monospace.png:ja" ),
+"res://Graphics/UI/Ailments/Forgetful.png": PoolStringArray( "res://Graphics/UI/Ailments/Forgetful_monospace.png:ja" ),
+"res://Graphics/UI/Ailments/Nausea.png": PoolStringArray( "res://Graphics/UI/Ailments/Nausea_monospace.png:ja" ),
+"res://Graphics/UI/Ailments/Numb.png": PoolStringArray( "res://Graphics/UI/Ailments/Numb_monospace.png:ja" ),
+"res://Graphics/UI/Ailments/Poisoned.png": PoolStringArray( "res://Graphics/UI/Ailments/Poisoned_monospace.png:ja" ),
+"res://Graphics/UI/Ailments/Sleeping.png": PoolStringArray( "res://Graphics/UI/Ailments/Sleeping_monospace.png:ja" ),
+"res://Graphics/UI/Ailments/Sunstroked.png": PoolStringArray( "res://Graphics/UI/Ailments/Sunstroked_monospace.png:ja" ),
 "res://Graphics/UI/Battle/label_hp.png": PoolStringArray( "res://Translations/TranslatedUI/label_hp_fr_es.png:fr", "res://Translations/TranslatedUI/label_hp_fr_es.png:es", "res://Translations/TranslatedUI/label_hp_it.png:it", "res://Translations/TranslatedUI/label_hp_de.png:de", "res://Translations/TranslatedUI/label_hp_ru_uk.png:ru", "res://Translations/TranslatedUI/label_hp_ru_uk.png:uk" ),
 "res://Graphics/UI/Battle/label_pp.png": PoolStringArray( "res://Translations/TranslatedUI/label_pp_ru_uk.png:ru", "res://Translations/TranslatedUI/label_pp_ru_uk.png:uk" ),
 "res://Graphics/UI/Battle/miss.png": PoolStringArray( "res://Translations/TranslatedUI/miss_fr.png:fr", "res://Translations/TranslatedUI/miss_es.png:es", "res://Translations/TranslatedUI/miss_es_ES.png:es_ES", "res://Translations/TranslatedUI/miss_pt_BR.png:pt_BR", "res://Translations/TranslatedUI/miss_it.png:it", "res://Translations/TranslatedUI/miss_pl.png:pl", "res://Translations/TranslatedUI/miss_de.png:de", "res://Translations/TranslatedUI/miss_ru.png:ru", "res://Translations/TranslatedUI/miss_uk.png:uk", "res://Translations/TranslatedUI/miss_zh_CN.png:zh_Hans_CN" ),
@@ -1159,6 +1159,12 @@ translation_remaps={
 "res://Translations/TranslatedTilesets/TilZooOffice_translate.png": PoolStringArray( "res://Translations/TranslatedTilesets/TilZooOffice_translate_de.png:de", "res://Translations/TranslatedTilesets/TilZooOffice_translate_es.png:es", "res://Translations/TranslatedTilesets/TilZooOffice_translate_fr.png:fr", "res://Translations/TranslatedTilesets/TilZooOffice_translate_it.png:it", "res://Translations/TranslatedTilesets/TilZooOffice_translate_ja.png:ja", "res://Translations/TranslatedTilesets/TilZooOffice_translate_ko.png:ko", "res://Translations/TranslatedTilesets/TilZooOffice_translate_pl.png:pl", "res://Translations/TranslatedTilesets/TilZooOffice_translate_pt_BR.png:pt_BR", "res://Translations/TranslatedTilesets/TilZooOffice_translate_ru.png:ru", "res://Translations/TranslatedTilesets/TilZooOffice_translate_uk.png:uk", "res://Translations/TranslatedTilesets/TilZooOffice_translate_zh_CN.png:zh_Hans_CN" )
 }
 locale_filter=[ 1, [ "de", "en", "es", "es_ES", "fr", "it", "ja", "ko", "pl", "pt_BR", "ru", "uk" ] ]
+
+
+[logging]
+
+file_logging/enable_file_logging=true
+file_logging/log_path="user://godot.log"
 
 [network]
 
