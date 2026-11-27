@@ -7,9 +7,25 @@
 | 2026-11-27 | Initial Switch Port v0.4.1.2 | `build/mother_encore.nro` + `build/mother_encore.pck` | Built & Pushed (`1713fa2`), Black Screen on Switch |
 | 2026-11-27 | Case-Sensitivity Fix + File Logging | `build/mother_encore.nro` + `build/mother_encore.pck` | Pushed (`f4b4fe9`), FW 22.5.0 `2001-0132` Crash |
 | 2026-11-27 | Godot 3.5.2 `libnx` 2026 Rebuild + Fast Boot | `build/mother_encore.nro` + `build/mother_encore.pck` | Booted on Switch (`0d48e3ae`), Ninten's House translations + slow boot reported |
-| 2026-11-27 | Translation Fix + SD I/O + Precompiled Boot Data | `build/mother_encore.nro` + `build/mother_encore.pck` | Built, Verified & Deployed to Switch (`SHA256 MATCH`) |
+| 2026-11-27 | Translation Fix + SD I/O + Precompiled Boot Data | `build/mother_encore.nro` + `build/mother_encore.pck` | Fixed Ninten's House translations (`919b92d`), Podunk outdoor low FPS reported |
+| 2026-11-27 | Overworld FPS Fix (YSort Cull + TileMap + GDScript) | `build/mother_encore.nro` + `build/mother_encore.pck` | Built, Verified & Deployed to Switch (`SHA256 MATCH`) |
 
-## Translation Fix & Boot Acceleration (2026-11-27)
+## Overworld FPS Optimization (2026-11-27)
+- **Engine (`switch/godot_switch_engine.patch`)**:
+  - `servers/visual/visual_server_canvas.cpp`: culled off-screen leaf items & empty-child containers in `_collect_ysort_children()` BEFORE `SortArray::sort()`.
+  - `scene/2d/tile_map.h` & `scene/2d/tile_map.cpp`: horizontal row batching (`quadrant_size` × `1`) for square non-vertical-half-offset `y_sort_mode` TileMaps (`Objects`, `YSort2`, `AbovePlayer3`, etc.).
+- **GDScript (`src/`)**:
+  - `SpriteDataFetcher.gd`: replaced per-frame `_process` `FloorReflector` lookup with `scene_changed` callback.
+  - `character_sprite.gd`: dirty checks in `blend_position()` and `travel()`.
+  - `npc.gd`: deferred `_init_offscreen_cull()` + disable off-screen `animationTree.active` and `$RayCast2D.enabled`.
+  - `birds.gd`: stopped off-screen `$AnimationPlayer` ticks in `_ready()` and `screen_exited`.
+  - `uiManager.gd`: Switch-only 5s `[PERF]` logger (`FPS`, `nodes`, `items2d`, `draws`, `proc_ms`, `phys_ms`).
+
+## Verified Build & Switch Deploy Outputs
+- `mother_encore.nro`: `38,711,489` B, `SHA256 = 8EEBDD8996D1F7146263287E07F3A2161E0C612F9C804BED88E16CFB0542CDA3` (`HTTP 201`, `SHA256 MATCH`)
+- `mother_encore.pck`: `255,737,408` B, `SHA256 = EA005A03B6840AE2E61A781D935B1D636ABB1F736410F696CD035049462FDA90` (`HTTP 201`, `SHA256 MATCH`)
+
+## Previous Stage — Translation Fix & Boot Acceleration (2026-11-27)
 - **Root Cause of Missing Ninten's House Text (`DIALOGUE_PODUNK_NON-PERSON_TEXT_NINTEN_S_HOUSE_*`)**:
   - `project.godot` uses escaped apostrophes (`Ninten\'s house - sheet.<lang>.translation`), whereas `build/filter_translations.py` checked unescaped `fn in existing`, accidentally stripping all 12 `Ninten's house` translation files.
   - Restored all 12 `Ninten\'s house` entries (`total=386`, `kept=323`, `removed=63`; verified `en` & `ru` message resolution directly from `.pck`).

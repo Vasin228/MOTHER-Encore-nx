@@ -16,6 +16,7 @@ var animationTree = null
 var _current_state = ""
 var _directional_tags = []
 var _all_tags = []
+var _blend_initialized := false
 
 onready var _anim_player = $AnimationPlayer
 
@@ -264,6 +265,8 @@ func _create_tree(tags:Array, singleTags:Array, connections := []):
 
 # Travel to an animation state
 func travel(state: String):
+	if _current_state == state and animationState and animationState.get_current_node() == state:
+		return
 	if animationTree.tree_root and animationTree.tree_root.has_node(state):
 		animationState.travel(state)
 		_current_state = state
@@ -277,9 +280,11 @@ func get_direction() -> Vector2:
 
 # Sets the direction for all animation states with multiple directions
 func blend_position(vector: Vector2):
+	if _blend_initialized and _direction == vector:
+		return
+	_blend_initialized = true
 	_direction = vector
 	for i in _directional_tags:
-		
 		animationTree.set("parameters/"+ i[0] + "/" + i[0] + "/blend_position", _direction)
 
 # Sets the speed at which animations play

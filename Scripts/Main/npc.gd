@@ -107,6 +107,14 @@ func _ready():
 			interact_area.position.x += (new_width - old_width) * sign(initial_dir.x)
 	connect("visibility_changed", self, "update_visibility_changed")
 	update_visibility_changed()
+	call_deferred("_init_offscreen_cull")
+
+func _init_offscreen_cull():
+	yield(get_tree(), "idle_frame")
+	if !is_inside_tree():
+		return
+	if has_node("VisibilityNotifier2D") and !$VisibilityNotifier2D.is_on_screen() and !uiManager.is_in_cutscene() and !talking and global.talker != self:
+		hide()
 	
 
 func _physics_process(delta: float):
@@ -179,6 +187,8 @@ func has_thoughts() -> bool:
 	return _get_right_dialog(true) != ""
 
 func interact():
+	if !visible and check_appear_flags():
+		show()
 	uiManager.close_commands_menu(true, false)
 	global.talker = self
 	_pause_for_interact = true
@@ -197,6 +207,8 @@ func stop_interaction():
 		get_tree().create_timer(1).connect("timeout", self, "return_to_init_dir")
 
 func telepathy():
+	if !visible and check_appear_flags():
+		show()
 	_pause_for_interact = true
 	if turn_to_player_on_telepathy:
 		new_pos = global_position
@@ -257,10 +269,14 @@ func _check_flags():
 	update_visibility_changed()
 
 func update_visibility_changed():
-	collisions.disabled = !is_visible_in_tree()
-	interact_area.disabled = !is_visible_in_tree() or !has_dialog()
-	
-	set_physics_process(is_visible_in_tree())
+	var vis := is_visible_in_tree()
+	collisions.disabled = !vis
+	interact_area.disabled = !vis or !has_dialog()
+	if character_sprite and character_sprite.animationTree:
+		character_sprite.animationTree.active = vis
+	if !vis and has_node("RayCast2D"):
+		$RayCast2D.enabled = false
+	set_physics_process(vis)
 
 func _on_ViewArea_body_entered(body):
 	if body == global.get_player() and staring:

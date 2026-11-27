@@ -332,3 +332,217 @@ index 917e3ee..5a67468 100644
 -	swkbdInlineCreate(&inline_keyboard);
 +	// swkbdInline disabled
  }
+diff --git a/scene/2d/tile_map.cpp b/scene/2d/tile_map.cpp
+index 147961d..99c1746 100644
+--- a/scene/2d/tile_map.cpp
++++ b/scene/2d/tile_map.cpp
+@@ -55,6 +55,20 @@ int TileMap::_get_quadrant_size() const {
+ 	}
+ }
+ 
++int TileMap::_get_quadrant_size_x() const {
++	if (y_sort_mode && (mode != MODE_SQUARE || half_offset == HALF_OFFSET_Y || half_offset == HALF_OFFSET_NEGATIVE_Y)) {
++		return 1;
++	}
++	return quadrant_size;
++}
++
++int TileMap::_get_quadrant_size_y() const {
++	if (y_sort_mode) {
++		return 1;
++	}
++	return quadrant_size;
++}
++
+ void TileMap::_notification(int p_what) {
+ 	switch (p_what) {
+ 		case NOTIFICATION_ENTER_TREE: {
+@@ -750,10 +764,12 @@ void TileMap::_recompute_rect_cache() {
+ 	Rect2 r_total;
+ 	for (Map<PosKey, Quadrant>::Element *E = quadrant_map.front(); E; E = E->next()) {
+ 		Rect2 r;
+-		r.position = _map_to_world(E->key().x * _get_quadrant_size(), E->key().y * _get_quadrant_size());
+-		r.expand_to(_map_to_world(E->key().x * _get_quadrant_size() + _get_quadrant_size(), E->key().y * _get_quadrant_size()));
+-		r.expand_to(_map_to_world(E->key().x * _get_quadrant_size() + _get_quadrant_size(), E->key().y * _get_quadrant_size() + _get_quadrant_size()));
+-		r.expand_to(_map_to_world(E->key().x * _get_quadrant_size(), E->key().y * _get_quadrant_size() + _get_quadrant_size()));
++		int qx = _get_quadrant_size_x();
++		int qy = _get_quadrant_size_y();
++		r.position = _map_to_world(E->key().x * qx, E->key().y * qy);
++		r.expand_to(_map_to_world(E->key().x * qx + qx, E->key().y * qy));
++		r.expand_to(_map_to_world(E->key().x * qx + qx, E->key().y * qy + qy));
++		r.expand_to(_map_to_world(E->key().x * qx, E->key().y * qy + qy));
+ 		if (E == quadrant_map.front()) {
+ 			r_total = r;
+ 		} else {
+@@ -773,7 +789,7 @@ Map<TileMap::PosKey, TileMap::Quadrant>::Element *TileMap::_create_quadrant(cons
+ 	Transform2D xform;
+ 	//xform.set_origin(Point2(p_qk.x,p_qk.y)*cell_size*quadrant_size);
+ 	Quadrant q;
+-	q.pos = _map_to_world(p_qk.x * _get_quadrant_size(), p_qk.y * _get_quadrant_size());
++	q.pos = _map_to_world(p_qk.x * _get_quadrant_size_x(), p_qk.y * _get_quadrant_size_y());
+ 	q.pos += get_cell_draw_offset();
+ 	if (tile_origin == TILE_ORIGIN_CENTER) {
+ 		q.pos += cell_size / 2;
+@@ -886,7 +902,7 @@ void TileMap::set_cell(int p_x, int p_y, int p_tile, bool p_flip_x, bool p_flip_
+ 		return; //nothing to do
+ 	}
+ 
+-	PosKey qk = pk.to_quadrant(_get_quadrant_size());
++	PosKey qk = pk.to_quadrant(_get_quadrant_size_x(), _get_quadrant_size_y());
+ 	if (p_tile == INVALID_CELL) {
+ 		//erase existing
+ 		tile_map.erase(pk);
+@@ -1043,7 +1059,7 @@ void TileMap::update_cell_bitmask(int p_x, int p_y) {
+ 			E->get().autotile_coord_x = (int)coord.x;
+ 			E->get().autotile_coord_y = (int)coord.y;
+ 
+-			PosKey qk = p.to_quadrant(_get_quadrant_size());
++			PosKey qk = p.to_quadrant(_get_quadrant_size_x(), _get_quadrant_size_y());
+ 			Map<PosKey, Quadrant>::Element *Q = quadrant_map.find(qk);
+ 			_make_quadrant_dirty(Q);
+ 
+@@ -1138,7 +1154,7 @@ void TileMap::set_cell_autotile_coord(int p_x, int p_y, const Vector2 &p_coord)
+ 	c.autotile_coord_y = p_coord.y;
+ 	tile_map[pk] = c;
+ 
+-	PosKey qk = pk.to_quadrant(_get_quadrant_size());
++	PosKey qk = pk.to_quadrant(_get_quadrant_size_x(), _get_quadrant_size_y());
+ 	Map<PosKey, Quadrant>::Element *Q = quadrant_map.find(qk);
+ 
+ 	if (!Q) {
+@@ -1164,7 +1180,7 @@ void TileMap::_recreate_quadrants() {
+ 	_clear_quadrants();
+ 
+ 	for (Map<PosKey, Cell>::Element *E = tile_map.front(); E; E = E->next()) {
+-		PosKey qk = PosKey(E->key().x, E->key().y).to_quadrant(_get_quadrant_size());
++		PosKey qk = PosKey(E->key().x, E->key().y).to_quadrant(_get_quadrant_size_x(), _get_quadrant_size_y());
+ 
+ 		Map<PosKey, Quadrant>::Element *Q = quadrant_map.find(qk);
+ 		if (!Q) {
+diff --git a/scene/2d/tile_map.h b/scene/2d/tile_map.h
+index a3d2b82..e746b5a 100644
+--- a/scene/2d/tile_map.h
++++ b/scene/2d/tile_map.h
+@@ -102,6 +102,12 @@ private:
+ 					y > 0 ? y / p_quadrant_size : (y - (p_quadrant_size - 1)) / p_quadrant_size);
+ 		}
+ 
++		PosKey to_quadrant(const int &p_qx, const int &p_qy) const {
++			return PosKey(
++					x > 0 ? x / p_qx : (x - (p_qx - 1)) / p_qx,
++					y > 0 ? y / p_qy : (y - (p_qy - 1)) / p_qy);
++		}
++
+ 		PosKey(int16_t p_x, int16_t p_y) {
+ 			x = p_x;
+ 			y = p_y;
+@@ -220,6 +226,8 @@ private:
+ 	_FORCE_INLINE_ void _update_item_material_state(const RID &p_canvas_item);
+ 
+ 	_FORCE_INLINE_ int _get_quadrant_size() const;
++	_FORCE_INLINE_ int _get_quadrant_size_x() const;
++	_FORCE_INLINE_ int _get_quadrant_size_y() const;
+ 
+ 	void _set_tile_data(const PoolVector<int> &p_data);
+ 	PoolVector<int> _get_tile_data() const;
+diff --git a/servers/visual/visual_server_canvas.cpp b/servers/visual/visual_server_canvas.cpp
+index 7cf80e1..6552f85 100644
+--- a/servers/visual/visual_server_canvas.cpp
++++ b/servers/visual/visual_server_canvas.cpp
+@@ -51,27 +51,52 @@ void VisualServerCanvas::_render_canvas_item_tree(Item *p_canvas_item, const Tra
+ 	VSG::canvas_render->canvas_render_items_end();
+ }
+ 
+-void _collect_ysort_children(VisualServerCanvas::Item *p_canvas_item, Transform2D p_transform, VisualServerCanvas::Item *p_material_owner, const Color p_modulate, VisualServerCanvas::Item **r_items, int &r_index) {
++void _collect_ysort_children(VisualServerCanvas::Item *p_canvas_item, Transform2D p_transform, const Transform2D &p_root_xform, const Rect2 &p_clip_rect, VisualServerCanvas::Item *p_material_owner, const Color p_modulate, VisualServerCanvas::Item **r_items, int &r_index) {
+ 	int child_item_count = p_canvas_item->child_items.size();
+ 	VisualServerCanvas::Item **child_items = p_canvas_item->child_items.ptrw();
+ 	for (int i = 0; i < child_item_count; i++) {
+-		if (child_items[i]->visible) {
++		VisualServerCanvas::Item *child = child_items[i];
++		if (child->visible) {
+ 			if (r_items) {
+-				r_items[r_index] = child_items[i];
+-				child_items[i]->ysort_modulate = p_modulate;
+-				child_items[i]->ysort_xform = p_transform;
+-				child_items[i]->ysort_pos = p_transform.xform(child_items[i]->xform.elements[2]);
+-				child_items[i]->material_owner = child_items[i]->use_parent_material ? p_material_owner : nullptr;
+-				child_items[i]->ysort_index = r_index;
++				if (!child->sort_y && !child->vp_render && !child->copy_back_buffer && !child->update_when_visible) {
++					bool has_vis_child = false;
++					int gc = child->child_items.size();
++					VisualServerCanvas::Item *const *gitems = child->child_items.ptr();
++					for (int k = 0; k < gc; k++) {
++						if (gitems[k]->visible) {
++							has_vis_child = true;
++							break;
++						}
++					}
++					if (!has_vis_child) {
++						if (child->commands.empty()) {
++							continue;
++						}
++						Transform2D child_world = (p_root_xform * p_transform) * child->xform;
++						Rect2 gr = child_world.xform(child->get_rect());
++						gr.position += p_clip_rect.position;
++						if (!p_clip_rect.intersects(gr, true)) {
++							continue;
++						}
++					}
++				}
++				r_items[r_index] = child;
++				child->ysort_modulate = p_modulate;
++				child->ysort_xform = p_transform;
++				child->ysort_pos = p_transform.xform(child->xform.elements[2]);
++				child->material_owner = child->use_parent_material ? p_material_owner : nullptr;
++				child->ysort_index = r_index;
+ 			}
+ 
+ 			r_index++;
+ 
+-			if (child_items[i]->sort_y) {
+-				_collect_ysort_children(child_items[i],
+-						p_transform * child_items[i]->xform,
+-						child_items[i]->use_parent_material ? p_material_owner : child_items[i],
+-						p_modulate * child_items[i]->modulate,
++			if (child->sort_y) {
++				_collect_ysort_children(child,
++						p_transform * child->xform,
++						p_root_xform,
++						p_clip_rect,
++						child->use_parent_material ? p_material_owner : child,
++						p_modulate * child->modulate,
+ 						r_items, r_index);
+ 			}
+ 		}
+@@ -137,17 +162,24 @@ void VisualServerCanvas::_render_canvas_item(Item *p_canvas_item, const Transfor
+ 	if (ci->sort_y) {
+ 		if (ci->ysort_children_count == -1) {
+ 			ci->ysort_children_count = 0;
+-			_collect_ysort_children(ci, Transform2D(), p_material_owner, Color(1, 1, 1, 1), nullptr, ci->ysort_children_count);
++			_collect_ysort_children(ci, Transform2D(), xform, p_clip_rect, p_material_owner, Color(1, 1, 1, 1), nullptr, ci->ysort_children_count);
+ 		}
+ 
+ 		child_item_count = ci->ysort_children_count;
+-		child_items = (Item **)alloca(child_item_count * sizeof(Item *));
++		if (child_item_count > 0) {
++			child_items = (Item **)alloca(child_item_count * sizeof(Item *));
+ 
+-		int i = 0;
+-		_collect_ysort_children(ci, Transform2D(), p_material_owner, Color(1, 1, 1, 1), child_items, i);
++			int i = 0;
++			_collect_ysort_children(ci, Transform2D(), xform, p_clip_rect, p_material_owner, Color(1, 1, 1, 1), child_items, i);
++			child_item_count = i;
+ 
+-		SortArray<Item *, ItemPtrSort> sorter;
+-		sorter.sort(child_items, child_item_count);
++			if (child_item_count > 1) {
++				SortArray<Item *, ItemPtrSort> sorter;
++				sorter.sort(child_items, child_item_count);
++			}
++		} else {
++			child_items = nullptr;
++		}
+ 	}
+ 
+ 	if (ci->z_relative) {

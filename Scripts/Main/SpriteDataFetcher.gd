@@ -49,13 +49,17 @@ func delete_reflection():
 		_obj_reflection.queue_free()
 		_has_reflection = false
 
-func _process(_delta):
-	# Probably a more efficient way to do this. Oh well!
+func _ready():
+	set_process(false)
+	if !global.is_connected("scene_changed", self, "_refresh_reflection"):
+		global.connect("scene_changed", self, "_refresh_reflection")
+	call_deferred("_refresh_reflection")
+
+func _refresh_reflection():
+	if _ignore_reflection or !is_inside_tree() or !global.currentScene:
+		return
 	reflect_node = global.currentScene.get_node_or_null("FloorReflector")
-	# Lord forgive me for this ungodly conditional
-	if (!_ignore_reflection && reflect_node && !_has_reflection):
+	if reflect_node and !_has_reflection:
 		generate_reflection()
-	elif !(reflect_node):
-		# Reflect node is no longer in the scene. Destroy itself.
+	elif !reflect_node and _has_reflection:
 		delete_reflection()
-	pass

@@ -142,6 +142,25 @@ func _ready():
 	_fixed_camera = load("res://Nodes/Ui/Camera.tscn").instance()
 	call_deferred("add_child", _fixed_camera)
 	print("[BOOT] uiManager._ready: %d ms" % OS.get_ticks_msec())
+	if OS.get_name() == "Switch":
+		var perf_timer := Timer.new()
+		perf_timer.wait_time = 5.0
+		perf_timer.one_shot = false
+		perf_timer.autostart = true
+		perf_timer.connect("timeout", self, "_log_switch_perf")
+		add_child(perf_timer)
+
+func _log_switch_perf():
+	var sname := global.currentScene.name if is_instance_valid(global.currentScene) else "?"
+	print("[PERF] scene=%s fps=%d nodes=%d items2d=%d draws=%d proc_ms=%.1f phys_ms=%.1f" % [
+		sname,
+		int(Performance.get_monitor(Performance.TIME_FPS)),
+		int(Performance.get_monitor(Performance.OBJECT_NODE_COUNT)),
+		int(Performance.get_monitor(Performance.RENDER_2D_ITEMS_IN_FRAME)),
+		int(Performance.get_monitor(Performance.RENDER_2D_DRAW_CALLS_IN_FRAME)),
+		Performance.get_monitor(Performance.TIME_PROCESS) * 1000.0,
+		Performance.get_monitor(Performance.TIME_PHYSICS_PROCESS) * 1000.0
+	])
 
 func set_menu_flavors(flavor: String):
 	var flavor_index := globaldata.FLAVORS.find(flavor)

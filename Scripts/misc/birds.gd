@@ -11,6 +11,7 @@ func _ready():
 	_prepare()
 	set_process(false)
 	if !Engine.editor_hint:
+		$AnimationPlayer.stop()
 		hide()
 
 func _prepare():
@@ -68,9 +69,9 @@ func _on_AnimationPlayer_animation_finished(anim_name):
 
 
 func _on_VisibilityNotifier2D_screen_exited():
+	$AnimationPlayer.stop()
 	position = start_pos
-	hide()
-	_ready()
+	inputVector = Vector2.ZERO
 	set_process(false)
 	hide()
 
