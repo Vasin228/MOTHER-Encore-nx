@@ -188,7 +188,8 @@ func _on_interact_body_entered(body):
 			chase_stop()
 			global.get_player().game_over()
 			audioManager.stop_all_music_players()
-			OS.shell_open("https://static.wikia.nocookie.net/rfti/images/6/65/Wega.png/revision/latest?cb=20230213144525")
+			if OS.get_name() != "Switch":
+				OS.shell_open("https://static.wikia.nocookie.net/rfti/images/6/65/Wega.png/revision/latest?cb=20230213144525")
 
 func _on_Hurtbox_area_entered(area):
 	if !global.get_player().is_paused() and !uiManager.is_in_cutscene():

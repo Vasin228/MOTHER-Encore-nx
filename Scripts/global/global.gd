@@ -46,12 +46,20 @@ var changing_scenes := false
 var _phone_location := ""
 
 func _ready():
+	if OS.get_name() == "Switch":
+		globaldata.device = globaldata.GAMEPAD
+		_ensure_user_dir()
 	_set_localized_default_inputs()
 	_load_settings()
 	partySpace.resize(255)
 	add_child(scene_transition)
 	_init_player()
 	_load_default_save()
+
+func _ensure_user_dir():
+	var dir := Directory.new()
+	if not dir.dir_exists("user://"):
+		dir.make_dir_recursive("user://")
 
 func _init_player():
 	var root := get_tree().get_root()
@@ -259,6 +267,8 @@ func start_joy_vibration(device_id: int, weak_magnitude: float, strong_magnitude
 		Input.start_joy_vibration(device_id, weak_magnitude, strong_magnitude, duration)
 
 func detect_buttons_style() -> int:
+	if OS.get_name() == "Switch":
+		return globaldata.BtnStyles.NINTENDO
 	var joy_name := Input.get_joy_name(0)
 	var NINTENDO_PATTERNS := ["nintendo", "switch", "joy-con", "snes", "famicom", "pro controller", "gamecube", "8bitdo"]
 	var PLAYSTATION_PATTERNS := ["playstation", "sony", "ps5", "ps4", "ps3", "ps2", "dualsense", "dualshock"]
@@ -286,9 +296,13 @@ func _increase_win_size(amount: int):
 	set_win_size(new_size)
 
 func toggle_fullscreen(value := !OS.window_fullscreen):
+	if OS.get_name() == "Switch":
+		return
 	set_win_size(globaldata.win_size, value)
 
 func set_win_size(new_size_num: int, fullscreen := false):
+	if OS.get_name() == "Switch":
+		return
 	# Everything here needs to happen asynchronously: sometimes resizing the window hangs the system for a few milliseconds, causing issues
 	yield(get_tree(), "idle_frame")
 	
@@ -383,6 +397,8 @@ func _deserialize_inputs(controls) -> void:
 
 # Default action keys adapted to various keyboard layouts
 func _set_localized_default_inputs():
+	if OS.get_name() == "Switch":
+		return
 	var actions := ["ui_accept", "ui_cancel", "ui_select", "ui_focus_prev", "ui_focus_next"]
 	var all_layouts := {
 		"QWERTY": "ZXCAS", "AZERTY": "WXCQS", "BÉPO": "ZYXAU", "QWERTZ": "YXCAS",
@@ -431,6 +447,7 @@ func save_settings():
 		"buttonsStyle": globaldata.buttons_style
 	}
 	
+	_ensure_user_dir()
 	var save_file := File.new()
 	save_file.open_encrypted_with_pass("user://settings.save", File.WRITE,"ENCORE")
 	save_file.store_line(to_json(save_dict))
@@ -473,6 +490,7 @@ func _load_settings():
 
 func save_from_dict(num: int, dict: Dictionary):
 	audioManager.play_sfx_by_name("save", "menu")
+	_ensure_user_dir()
 	var save_file := File.new()
 	save_file.open_encrypted_with_pass("user://saveFile" + var2str(num) + ".save", File.WRITE,"ENCORE")
 	save_file.store_line(to_json(dict))

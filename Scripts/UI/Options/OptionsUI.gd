@@ -169,7 +169,8 @@ func _refresh_options_list(back_from := -1):
 		yield(_options_list, "resized")
 		for id in cur_menu_content:
 			if (_from_save and TITLE_SCREEN_ONLY.has(id))\
-			or (!_from_save and SAVE_ONLY.has(id)):
+			or (!_from_save and SAVE_ONLY.has(id))\
+			or (OS.get_name() == "Switch" and id in [OPTN_SETTINGS_RESOLUTION, OPTN_SETTINGS_FULLSCREEN]):
 				continue
 			var label = _options_list.get_child(id)
 			label.show()
@@ -258,7 +259,8 @@ func _on_arrow_selected(cursor_index: int):
 			_cursor.on = true
 		OPTN_SETTINGS_RESOLUTION: # Resolution
 			var resolutions = _get_resolutions()
-			_panel_generic.open(resolutions, funcref(self, "_on_generic_option_back"), resolutions[globaldata.win_size - 1])
+			var res_idx = int(clamp(globaldata.win_size - 1, 0, resolutions.size() - 1))
+			_panel_generic.open(resolutions, funcref(self, "_on_generic_option_back"), resolutions[res_idx])
 		OPTN_SETTINGS_FULLSCREEN: # Full Screen
 			global.toggle_fullscreen()
 			_cursor.on = true
@@ -452,6 +454,8 @@ func _get_resolution_as_text(index: int) -> String:
 	return "%s×%s" % [320 * index, 180 * index]
 
 func _get_resolutions() -> Array:
+	if OS.get_name() == "Switch" or OS.get_screen_size() == Vector2.ZERO:
+		return ["1280×720"]
 	var resolutions := []
 	var i := 1
 	while Vector2(320 * i, 180 * i) < OS.get_screen_size():

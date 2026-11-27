@@ -37,6 +37,7 @@ onready var _arrow := $arrow
 
 var _item_side_on_screen := 1.0
 var _active := false
+var _is_ready := false
 var _current_char = globaldata.characters.ninten
 var _current_item: Item
 
@@ -44,6 +45,7 @@ var _actions: Dictionary
 var _actions_details: Dictionary
 
 func _ready():
+	_is_ready = true
 	visible = false
 	pass
 	
@@ -185,7 +187,7 @@ func _on_ConfirmationSelect_back(accept: bool, current_action: String, current_c
 				_back_from_submenu()
 
 func bounce():
-	if !is_node_ready(): yield(self, "ready")
+	if !_is_ready: yield(self, "ready")
 	create_tween().tween_property(self, "rect_position", rect_position, 0.1) \
 			.from(rect_position - Vector2(0, 2)).set_ease(Tween.EASE_IN)
 

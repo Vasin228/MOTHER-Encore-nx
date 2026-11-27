@@ -45,7 +45,8 @@ func _ready():
 	_stretch_shrink = ProjectSettings.get_setting("display/window/stretch/shrink")
 	
 	# Enforce minimum resolution.
-	OS.min_window_size = _base_resolution
+	if OS.get_name() != "Switch":
+		OS.min_window_size = _base_resolution
 
 	# Remove default stretch behavior.
 	var tree: SceneTree = get_tree()
@@ -71,7 +72,9 @@ func is_active() -> bool:
 
 func _update_resolution():
 	var video_mode: Vector2 = OS.window_size
-	if OS.window_fullscreen:
+	if OS.get_name() == "Switch":
+		video_mode = Vector2(1280, 720)
+	elif OS.window_fullscreen:
 		video_mode = OS.get_screen_size()
 
 	var scale: float
